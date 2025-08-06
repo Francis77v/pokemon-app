@@ -1,0 +1,72 @@
+{% extends 'main/base.html' %}
+
+{% block title %} Login {% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-4">
+        <h2 class="mb-4 text-center">Login</h2>
+        <form id="login-form">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="id_username" class="form-label">Username</label>
+                <input type="text" class="form-control" id="id_username" name="username" required autofocus>
+            </div>
+            <div class="mb-3">
+                <label for="id_password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="id_password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+        <div id="login-message" class="mt-3 text-center"></div>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async function(event) {
+    event.preventDefault();  // Prevent the normal form submit
+
+    const username = document.getElementById('id_username').value;
+    const password = document.getElementById('id_password').value;
+    const messageDiv = document.getElementById('login-message');
+
+    messageDiv.textContent = ''; // Clear previous message
+
+    try {
+        const response = await fetch("{% url 'api-auth-token' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                // CSRF token for DRF token endpoint is usually not required if using session authentication disabled
+                // If needed, you can add 'X-CSRFToken': csrftoken here.
+            },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            messageDiv.textContent = data.non_field_errors ? data.non_field_errors.join(', ') : 'Login failed';
+            messageDiv.classList.add('text-danger');
+            return;
+        }
+
+        const data = await response.json();
+        // Save token to localStorage or cookie for future API calls
+        localStorage.setItem('authToken', data.token);
+
+        messageDiv.textContent = 'Login successful!';
+        messageDiv.classList.remove('text-danger');
+        messageDiv.classList.add('text-success');
+
+        // Redirect or load protected page after login
+        setTimeout(() => {
+            window.location.href = '/';  // Or wherever
+        }, 1000);
+
+    } catch (error) {
+        messageDiv.textContent = 'An error occurred. Please try again.';
+        messageDiv.classList.add('text-danger');
+    }
+});
+</script>
+{% endblock %}
