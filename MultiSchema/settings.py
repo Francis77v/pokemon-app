@@ -30,19 +30,44 @@ ALLOWED_HOSTS = []
 
 # Application definition
 
-INSTALLED_APPS = [
+SHARED_APPS = [
+    # Must come first
+    'django_tenants',
+
+    # Shared apps that go to the public schema
+    'users',  # shared user table
+    'core',
+    # Django built-ins
     'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
+
     'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    'users',
+
+
+
+    # 3rd-party libraries (used across all tenants)
     'crispy_forms',
     'crispy_bootstrap5',
     'rest_framework',
     'rest_framework.authtoken',
 ]
+
+TENANT_APPS = [
+    # Tenant-specific apps
+    'pokemon',
+
+    # These are required in tenant schemas too
+    'django.contrib.contenttypes',
+    'django.contrib.auth',
+
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+# FINAL app list
+INSTALLED_APPS = SHARED_APPS + TENANT_APPS
+TENANT_MODEL = "core.Tenant"        # ⛔ Comment this out
+TENANT_DOMAIN_MODEL = "core.Domain" # ⛔ If exists
+
 # # settings.py
 # AUTH_USER_MODEL = 'users.CustomUser'
 REST_FRAMEWORK = {
@@ -52,6 +77,7 @@ REST_FRAMEWORK = {
     ]
 }
 MIDDLEWARE = [
+    'django_tenants.middleware.main.TenantMainMiddleware',  # FIRST
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -62,7 +88,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'MultiSchema.urls'
-
+PUBLIC_SCHEMA_URLCONF = 'MultiSchema.public_urls'  # for login, etc.
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -84,17 +110,55 @@ WSGI_APPLICATION = 'MultiSchema.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+DATABASE_ROUTERS = (
+    'django_tenants.routers.TenantSyncRouter',
+)
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'MultiSchemaDB',
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': 'Pokemon',
         'USER': 'postgres',
-        'PASSWORD': '12345',
+        'PASSWORD': 'password',
         'HOST': 'localhost',
         'PORT': '5432',
+
+    },
+    'dev': {
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': 'Pokemon',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=dev'
+        }
+    },
+    'live': {
+        'ENGINE': 'django_tenants.postgresql_backend',
+        'NAME': 'Pokemon',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=live'
+        }
+    },
+    'staging': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'Pokemon',
+        'USER': 'postgres',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=staging'
+        }
     }
 }
+
 
 
 # Password validation
