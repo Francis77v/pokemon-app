@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pokéball List</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #f8f8f8;
+        margin: 0;
+        padding: 0;
+        color: #333;
+    }
+
+    header {
+        background: #ef5350; /* Pokémon red */
+        color: white;
+        padding: 1rem;
+        text-align: center;
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 1.8rem;
+    }
+
+    .search-container {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+    }
+
+    #searchInput {
+        padding: 10px;
+        width: 90%;
+        max-width: 400px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+
+    #pokeballList {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        padding: 20px;
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    .card {
+        background: white;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card img {
+        width: 100px;
+        max-width: 100%;
+    }
+
+    button {
+        background: #ef5350;
+        color: white;
+        border: none;
+        padding: 8px 12px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    button:hover {
+        background: #d32f2f;
+    }
+
+    /* Modal Styles */
+    #pokemonModal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0; top: 0;
+        width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        overflow-y: auto;
+    }
+
+    .modal-content {
+        background: white;
+        margin: 5% auto;
+        padding: 20px;
+        width: 90%;
+        max-width: 400px;
+        border-radius: 10px;
+        text-align: center;
+        position: relative;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .close-btn {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        cursor: pointer;
+        font-weight: bold;
+        font-size: 1.2rem;
+    }
+
+    @media (max-width: 500px) {
+        .card img {
+            width: 80px;
+        }
+        button {
+            font-size: 0.8rem;
+        }
+    }
+    .back-btn {
+    background: white;
+    color: #ef5350;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-right: 10px;
+    transition: background 0.2s ease-in-out;
+}
+
+.back-btn:hover {
+    background: #ffe5e5;
+}
+
+</style>
+</head>
+<body>
+ <button onclick="window.location.href='/pokemon/home/'" class="back-btn">← Back</button>
+<header>
+
+    <h1>Pokéball List</h1>
+</header>
+
+<div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search Pokéball...">
+</div>
+
+<div id="pokeballList"></div>
+
+<!-- Modal -->
+<div id="pokemonModal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="closeModal()">✖</span>
+        <div id="modalContent">Loading...</div>
+    </div>
+</div>
+
+<script>
+async function fetchPokeballs() {
+    const listContainer = document.getElementById('pokeballList');
+    listContainer.innerHTML = 'Loading...';
+
+    try {
+        const res = await fetch('/pokemon/api/pokeballs/');
+        if (!res.ok) throw new Error(`API error: ${res.status}`);
+        const pokeballs = await res.json();
+
+        listContainer.innerHTML = '';
+
+        for (const ball of pokeballs) {
+            const ballName = ball.name.toLowerCase().replace(' ', '-');
+
+            let imageUrl = '';
+            try {
+                const pokeApiRes = await fetch(`https://pokeapi.co/api/v2/item/${ballName}`);
+                if (pokeApiRes.ok) {
+                    const pokeApiData = await pokeApiRes.json();
+                    imageUrl = pokeApiData.sprites.default;
+                }
+            } catch (e) {
+                console.warn(`No image found for ${ball.name}`);
+            }
+
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <h3>${ball.name}</h3>
+                ${imageUrl ? `<img src="${imageUrl}" alt="${ball.name}">` : ''}
+                ${ball.pokemon ?
+                    `<p>Contains: ${ball.pokemon.name}</p>
+                     <button onclick="viewPokemon('${ball.pokemon.name}')">View Pokémon</button>`
+                    : '<p>Empty</p>'}
+            `;
+
+            listContainer.appendChild(card);
+        }
+
+    } catch (err) {
+        console.error(err);
+        listContainer.innerHTML = 'Failed to load Pokéballs.';
+    }
+}
+
+async function viewPokemon(pokemonName) {
+    const modal = document.getElementById('pokemonModal');
+    const modalContent = document.getElementById('modalContent');
+
+    modal.style.display = 'block';
+    modalContent.innerHTML = 'Loading...';
+
+    try {
+        const res = await fetch(`https://pokeapi.co/api/v2/pokemon/${pokemonName.toLowerCase()}`);
+        if (!res.ok) throw new Error(`Pokémon not found: ${pokemonName}`);
+        const data = await res.json();
+
+        // Extract abilities (mark hidden abilities)
+        const abilities = data.abilities
+            .map(a => a.ability.name + (a.is_hidden ? ' (Hidden)' : ''))
+            .join(', ');
+
+        // Extract stats
+        const stats = data.stats
+            .map(s => `<li><strong>${s.stat.name.toUpperCase()}:</strong> ${s.base_stat}</li>`)
+            .join('');
+
+        // Extra info
+        const baseExp = data.base_experience;
+        const sprite = data.sprites.front_default || '';
+
+        modalContent.innerHTML = `
+            <h2>${data.name.toUpperCase()}</h2>
+            ${sprite ? `<img src="${sprite}" alt="${data.name}">` : ''}
+            <p><strong>Height:</strong> ${data.height}</p>
+            <p><strong>Weight:</strong> ${data.weight}</p>
+            <p><strong>Types:</strong> ${data.types.map(t => t.type.name).join(', ')}</p>
+            <p><strong>Abilities:</strong> ${abilities}</p>
+            <p><strong>Base Experience:</strong> ${baseExp}</p>
+            <h3>Stats</h3>
+            <ul style="list-style:none; padding:0; text-align:left;">
+                ${stats}
+            </ul>
+        `;
+    } catch (err) {
+        modalContent.innerHTML = `<p style="color:red;">Failed to load Pokémon data.</p>`;
+        console.error(err);
+    }
+}
+
+
+function closeModal() {
+    document.getElementById('pokemonModal').style.display = 'none';
+}
+
+fetchPokeballs();
+</script>
+
+</body>
+</html>

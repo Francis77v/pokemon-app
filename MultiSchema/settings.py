@@ -39,7 +39,7 @@ SHARED_APPS = [
     'core',
     # Django built-ins
     'django.contrib.admin',
-
+    'django.contrib.auth',
     'django.contrib.sessions',
 
 
@@ -57,7 +57,7 @@ TENANT_APPS = [
 
     # These are required in tenant schemas too
     'django.contrib.contenttypes',
-    'django.contrib.auth',
+
 
     'django.contrib.messages',
     'django.contrib.staticfiles',
@@ -132,7 +132,7 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
-            'options': '-c search_path=dev'
+            'options': '-c search_path=dev' ##schema
         }
     },
     'live': {
@@ -143,7 +143,7 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
-            'options': '-c search_path=live'
+            'options': '-c search_path=live' ##schema
         }
     },
     'staging': {
@@ -154,7 +154,7 @@ DATABASES = {
         'HOST': 'localhost',
         'PORT': '5432',
         'OPTIONS': {
-            'options': '-c search_path=staging'
+            'options': '-c search_path=staging' ##schema
         }
     }
 }

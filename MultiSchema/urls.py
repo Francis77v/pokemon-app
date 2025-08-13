@@ -23,5 +23,6 @@ urlpatterns = [
        path('admin/', admin.site.urls),
        path('api-auth-token/', obtain_auth_token, name='api-auth-token'),
        path('', include('users.urls')),
+       path('pokemon/', include('pokemon.urls'))
 
 ]

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pokémon & Pokéball Search</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            padding: 0;
+            margin: 0;
+            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            background: white;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s ease-in-out;
+        }
+
+        .btn-primary {
+            background-color: #ef5350;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #d32f2f;
+        }
+
+        .btn-secondary {
+            background-color: #1976d2;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #0d47a1;
+        }
+
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem;
+        }
+
+        .cards-container {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 1.5rem;
+            flex: 1 1 400px;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .search-card h2 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+
+        .search-box {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-box input {
+            padding: 0.6rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            flex: 1;
+        }
+
+        .results {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 1rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 250px;
+            text-align: center;
+        }
+
+        .card img {
+            max-width: 150px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width: 768px) {
+            .cards-container {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <button id="pokeballListBtn" class="btn btn-primary">Pokéballs</button>
+</header>
+
+<main>
+    <div class="cards-container">
+
+        <!-- Pokémon Search Card -->
+        <div class="search-card">
+            <h2>Pokémon Search</h2>
+            <div class="search-box">
+                <input type="text" id="searchPokemon" placeholder="Enter Pokémon name">
+                <button class="btn btn-primary" onclick="searchPokemon()">Search</button>
+            </div>
+            <div id="resultsPokemon" class="results"></div>
+        </div>
+
+        <!-- Pokéball Search Card -->
+        <div class="search-card">
+            <h2>Pokéball Search</h2>
+            <div class="search-box">
+                <input type="text" id="searchPokeball" placeholder="Enter Pokéball name">
+                <button class="btn btn-primary" onclick="searchPokeball()">Search</button>
+            </div>
+            <div id="resultsPokeball" class="results"></div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+document.getElementById("pokeballListBtn").addEventListener("click", function () {
+    window.location.href = "/pokemon/bag";
+});
+
+async function searchPokemon() {
+    const query = document.getElementById('searchPokemon').value.toLowerCase().trim();
+    const resultsDiv = document.getElementById('resultsPokemon');
+    resultsDiv.innerHTML = '<p>Loading...</p>';
+
+    if (!query) {
+        resultsDiv.innerHTML = '<p>Please enter a Pokémon name.</p>';
+        return;
+    }
+
+    const pokeData = await fetchData(`https://pokeapi.co/api/v2/pokemon/${query}`);
+    if (pokeData) {
+        resultsDiv.innerHTML = `
+            <div class="card">
+                <h3>${pokeData.name}</h3>
+                <img src="${pokeData.sprites.front_default}" alt="${pokeData.name}">
+                <p><strong>Height:</strong> ${pokeData.height}</p>
+                <p><strong>Weight:</strong> ${pokeData.weight}</p>
+                <p><strong>Types:</strong> ${pokeData.types.map(t => t.type.name).join(', ')}</p>
+                <button class="btn btn-secondary" onclick="catchPokemon(
+                    '${pokeData.name}',
+                    '${pokeData.types.map(t => t.type.name).join(', ')}',
+                    '${pokeData.species?.name || ''}',
+                    '${pokeData.abilities?.[0]?.ability?.name || ''}'
+                )">Catch</button>
+            </div>
+        `;
+        return;
+    }
+    resultsDiv.innerHTML = `<p>No Pokémon found for "${query}".</p>`;
+}
+
+async function searchPokeball() {
+    const query = document.getElementById('searchPokeball').value.toLowerCase().trim();
+    const resultsDiv = document.getElementById('resultsPokeball');
+    resultsDiv.innerHTML = '<p>Loading...</p>';
+
+    if (!query) {
+        resultsDiv.innerHTML = '<p>Please enter a Pokéball name.</p>';
+        return;
+    }
+
+    const ballData = await fetchData(`https://pokeapi.co/api/v2/item/${query}`);
+    if (ballData && ballData.category?.name?.includes("ball")) {
+        resultsDiv.innerHTML = `
+            <div class="card">
+                <h3>${ballData.name}</h3>
+                <img src="${ballData.sprites.default}" alt="${ballData.name}">
+                <p>${ballData.effect_entries[0]?.effect || 'No description available.'}</p>
+                <button class="btn btn-secondary" onclick="getItem('${ballData.name}')">Get Item</button>
+            </div>
+        `;
+        return;
+    }
+    resultsDiv.innerHTML = `<p>No Pokéball found for "${query}".</p>`;
+}
+
+async function fetchData(url) {
+    try {
+        const res = await fetch(url);
+        if (res.ok) return await res.json();
+    } catch (err) {
+        console.error(`Error fetching ${url}:`, err);
+    }
+    return null;
+}
+
+async function getItem(name) {
+    try {
+        const res = await fetch('/pokemon/api/get-item/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token YOUR_AUTH_TOKEN_HERE'
+            },
+            body: JSON.stringify({ name })
+        });
+
+        if (res.ok) {
+            alert("Pokéball added!");
+        } else {
+            const err = await res.json();
+            alert("Failed to add Pokéball: " + JSON.stringify(err));
+        }
+    } catch (e) {
+        console.error("Get item error:", e);
+        alert("Error getting item.");
+    }
+}
+
+async function catchPokemon(name, types, species, ability) {
+    try {
+        const res = await fetch('/pokemon/api/catch-pokemon/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Token YOUR_AUTH_TOKEN_HERE'
+            },
+            body: JSON.stringify({ name, types, species, ability })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            alert("Pokémon caught!");
+        } else if (data.detail === 'No available Pokéball') {
+            alert("You have no Pokéball to catch this Pokémon.");
+        } else {
+            alert("Failed to catch: " + JSON.stringify(data));
+        }
+    } catch (e) {
+        console.error("Catch error:", e);
+        alert("Error catching Pokémon.");
+    }
+}
+</script>
+
+</body>
+</html>
